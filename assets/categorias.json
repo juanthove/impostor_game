@@ -1,0 +1,47 @@
+[
+  {
+    "nombre": "Fiesta",
+    "descripcion": "Diversion desenfadada con risas y un poco de caos",
+    "imagen": "assets/categorias/fiesta.png"
+  },
+  {
+    "nombre": "Celebridades",
+    "descripcion": "Nombres famosos del cine, la musica y mas",
+    "imagen": "assets/categorias/celebridades.png"
+  },
+  {
+    "nombre": "Navidad",
+    "descripcion": "Magia invernal y buena vibra",
+    "imagen": "assets/categorias/navidad.png"
+  },
+  {
+    "nombre": "Comida",
+    "descripcion": "Temas sabrosos, pero si dices algo mal... !estas frito!",
+    "imagen": "assets/categorias/comida.png"
+  },
+  {
+    "nombre": "Hollywood",
+    "descripcion": "Peliculas, actores y momentos iconicos",
+    "imagen": "assets/categorias/hollywood.png"
+  },
+  {
+    "nombre": "Marcas",
+    "descripcion": "Nombres famosos y objetos cotidianos",
+    "imagen": "assets/categorias/marcas.png"
+  },
+  {
+    "nombre": "Lugares",
+    "descripcion": "Paises, monumentos, ciudades !finge que ya estuviste ahí!",
+    "imagen": "assets/categorias/lugares.png"
+  },
+  {
+    "nombre": "Animales",
+    "descripcion": "De mascotas a bestias salvajes",
+    "imagen": "assets/categorias/animales.png"
+  },
+  {
+    "nombre": "Deportes",
+    "descripcion": "Seas fan o solo estes fingiendo, tendras que mantener la compostura",
+    "imagen": "assets/categorias/deportes.png"
+  }
+]
