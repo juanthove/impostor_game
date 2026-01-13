@@ -4,16 +4,20 @@ import '../models/palabra.dart';
 import '../models/categoria.dart';
 import '../utils/system_ui_helper.dart'; //Ocultar barra de navegación
 import '../constants/ui_constants.dart'; //Para obtener el estilo del juego
+import '../models/pista.dart';
 
 class ListPalabrasScreen extends StatefulWidget {
   const ListPalabrasScreen({super.key});
 
   @override
   State<ListPalabrasScreen> createState() => _ListPalabrasScreenState();
+  
 }
 
 class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
+  
   final DatabaseHelper db = DatabaseHelper.instance;
+  final Map<int, List<Pista>> _pistasCache = {};
 
   List<Categoria> _categorias = [];
   List<Palabra> _palabras = [];
@@ -67,7 +71,7 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
         centerTitle: true,
         title: const Text(
           'Listado de palabras',
-          style: kTitleAppBar, // misma fuente y estilo que otras pantallas
+          style: kTitleAppBar,
         ),
         iconTheme: const IconThemeData(
           color: Colors.white,
@@ -76,13 +80,13 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: kBackgroundGradient, // mismo fondo que en otras páginas
+          gradient: kBackgroundGradient,
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
           child: Column(
             children: [
-              // Dropdown de categorías
+              // ===== Dropdown categorías =====
               DropdownButtonFormField<Categoria?>(
                 initialValue: _categoriaSeleccionada,
                 items: [
@@ -105,15 +109,16 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                 },
                 iconEnabledColor: Colors.white,
                 decoration: InputDecoration(
-                  hintText: 'Categoría',         // aparece dentro del campo
+                  hintText: 'Categoría',
                   filled: true,
-                  fillColor: kGrayField,         // fondo gris oscuro
+                  fillColor: kGrayField,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14, horizontal: 16
+                    vertical: 14,
+                    horizontal: 16,
                   ),
                 ),
                 style: const TextStyle(color: Colors.white),
@@ -121,13 +126,11 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Lista de palabras
+              // ===== Lista de palabras =====
               Expanded(
                 child: _cargando
                     ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(color: Colors.white),
                       )
                     : _palabras.isEmpty
                         ? const Center(
@@ -152,7 +155,13 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                                     color: kGrayField,
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: ListTile(
+                                  child: ExpansionTile(
+                                    tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                                    collapsedIconColor: Colors.white,
+                                    iconColor: Colors.white,
+                                    textColor: Colors.white,
+                                    collapsedTextColor: Colors.white,
+
                                     title: Text(
                                       palabra.texto,
                                       style: const TextStyle(
@@ -161,11 +170,20 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                                         fontFamily: 'Poppins',
                                       ),
                                     ),
-                                    trailing: IconButton(
-                                      icon: const Icon(
-                                        Icons.close,
-                                        color: Colors.red,
+
+                                    // ===== Subtitle con preview =====
+                                    subtitle: const Text(
+                                      'Tocá para ver pistas',
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
                                       ),
+                                    ),
+
+                                    // ===== Botón borrar =====
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.close, color: Colors.red),
                                       onPressed: () async {
                                         final confirmar = await showDialog<bool>(
                                           context: context,
@@ -192,11 +210,7 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                                                     Navigator.pop(context, false),
                                                 child: const Text(
                                                   'Cancelar',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontFamily: 'Poppins',
-                                                  ),
+                                                  style: TextStyle(color: Colors.white),
                                                 ),
                                               ),
                                               TextButton(
@@ -204,11 +218,7 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                                                     Navigator.pop(context, true),
                                                 child: const Text(
                                                   'Eliminar',
-                                                  style: TextStyle(
-                                                    color: Colors.red,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontFamily: 'Poppins',
-                                                  ),
+                                                  style: TextStyle(color: Colors.red),
                                                 ),
                                               ),
                                             ],
@@ -221,6 +231,40 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                                         }
                                       },
                                     ),
+
+                                    // ===== Pistas =====
+                                    children: [
+                                      Builder(
+                                        builder: (_) {
+                                          final palabraId = palabra.id!;
+
+                                          if (_pistasCache.containsKey(palabraId)) {
+                                            return _buildPistas(
+                                              _pistasCache[palabraId]!,
+                                            );
+                                          }
+
+                                          return FutureBuilder<List<Pista>>(
+                                            future: db.getPistasPorPalabra(palabraId),
+                                            builder: (context, snapshot) {
+                                              if (!snapshot.hasData) {
+                                                return const Padding(
+                                                  padding: EdgeInsets.all(12),
+                                                  child: CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                  ),
+                                                );
+                                              }
+
+                                              final pistas = snapshot.data!;
+                                              _pistasCache[palabraId] = pistas;
+
+                                              return _buildPistas(pistas);
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
@@ -233,5 +277,37 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
       ),
     );
   }
+
+
+  Widget _buildPistas(List<Pista> pistas) {
+    if (pistas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(12),
+        child: Text(
+          'Sin pistas',
+          style: TextStyle(
+            color: Colors.white54,
+            fontFamily: 'Poppins',
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: pistas.map((pista) {
+        return ListTile(
+          dense: true,
+          title: Text(
+            '• ${pista.texto}',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontFamily: 'Poppins',
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
 }
 

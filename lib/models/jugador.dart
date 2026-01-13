@@ -12,4 +12,13 @@ class Jugador {
     this.color,
     this.eliminado = false,
   });
+  
+  Jugador clone() {
+    return Jugador(
+      nombre: nombre,
+      esImpostor: false,
+      eliminado: false,
+      color: color,
+    );
+  }
 }

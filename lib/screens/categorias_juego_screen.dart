@@ -5,6 +5,7 @@ import '../state/game_state.dart';
 import 'impostor_screen.dart';
 import '../constants/ui_constants.dart'; //Constantes de diseño
 import '../utils/system_ui_helper.dart'; //Ocultar barra de navegación
+import 'dart:io';
 
 
 class CategoriasJuegoScreen extends StatefulWidget {
@@ -22,11 +23,15 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
   bool _todas = true;
   final Set<int> _categoriasSeleccionadas = {};
 
+  bool _hayPalabras = false;
+  bool _cargandoChequeo = false;
+
+
   @override
   void initState() {
     super.initState();
     SystemUIHelper.hideSystemBars();
-    _cargarCategorias();
+    _cargarCategorias().then((_) => _validarPalabras());
   }
 
   Future<void> _cargarCategorias() async {
@@ -41,6 +46,8 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
       _todas = value;
       _categoriasSeleccionadas.clear();
     });
+
+    _validarPalabras();
   }
 
   void _toggleCategoria(int id) {
@@ -52,6 +59,8 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
         _categoriasSeleccionadas.add(id);
       }
     });
+
+    _validarPalabras();
   }
 
   void _continuar() {
@@ -67,9 +76,31 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
     );
   }
 
+  Future<void> _validarPalabras() async {
+    setState(() {
+      _cargandoChequeo = true;
+    });
+
+    bool existe;
+
+    if (_todas) {
+      existe = await db.existeAlgunaPalabra();
+    } else {
+      existe = await db.existePalabraEnCategorias(
+        _categoriasSeleccionadas.toList(),
+      );
+    }
+
+    setState(() {
+      _hayPalabras = existe;
+      _cargandoChequeo = false;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    bool botonHabilitado = _todas || _categoriasSeleccionadas.isNotEmpty;
+    bool botonHabilitado = !_cargandoChequeo && _hayPalabras && (_todas || _categoriasSeleccionadas.isNotEmpty);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -164,22 +195,11 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
                                   topRight: Radius.circular(10),
                                   bottomRight: Radius.circular(10),
                                 ),
-                                child: categoria.imagen.isNotEmpty
-                                    ? Image.asset(
-                                        categoria.imagen,
-                                        width: 100,
-                                        height: double.infinity,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        width: 100,
-                                        color: kGrayLight,
-                                        child: const Icon(
-                                          Icons.image,
-                                          size: 40,
-                                          color: Colors.white54,
-                                        ),
-                                      ),
+                                child: SizedBox(
+                                  width: 100,
+                                  height: double.infinity,
+                                  child: _buildCategoriaImagen(categoria.imagen),
+                                ),
                               ),
                             ],
                           ),
@@ -196,9 +216,14 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
                 child: ElevatedButton(
                   onPressed: botonHabilitado ? _continuar : null,
                   style: kWhiteButtonStyle,
-                  child: const Text(
-                    'Jugar',
+                  child: Text(
+                    _cargandoChequeo
+                        ? 'Verificando...'
+                        : _hayPalabras
+                            ? 'Jugar'
+                            : 'No hay palabras en las categorías seleccionadas',
                     style: kWhiteButtonText,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
@@ -210,7 +235,48 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
   }
 
 
+  Widget _buildCategoriaImagen(String imagen) {
+    if (imagen.isEmpty) {
+      return _placeholderImagen();
+    }
 
+    // Imagen desde assets
+    if (imagen.startsWith('assets/')) {
+      return Image.asset(
+        imagen,
+        width: 100,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholderImagen(),
+      );
+    }
+
+    // Imagen desde archivo local
+    final file = File(imagen);
+    if (file.existsSync()) {
+      return Image.file(
+        file,
+        width: 100,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholderImagen(),
+      );
+    }
+
+    return _placeholderImagen();
+  }
+
+  Widget _placeholderImagen() {
+    return Container(
+      width: 100,
+      color: kGrayLight,
+      child: const Icon(
+        Icons.image_not_supported,
+        size: 40,
+        color: Colors.white54,
+      ),
+    );
+  }
 
 
 

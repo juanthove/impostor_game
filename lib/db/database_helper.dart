@@ -59,6 +59,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         palabra_id INTEGER NOT NULL,
         texto TEXT NOT NULL,
+        UNIQUE(texto, palabra_id),
         FOREIGN KEY (palabra_id) REFERENCES palabras(id) ON DELETE CASCADE
       )
     ''');
@@ -80,6 +81,92 @@ class DatabaseHelper {
     final List<dynamic> jsonData = json.decode(jsonString);
     return List<Map<String, dynamic>>.from(jsonData);
   }
+
+  Future<void> resetTodo() async {
+    final db = await database;
+
+    await db.delete('pistas');
+    await db.delete('palabras');
+    await db.delete('categorias');
+
+    // Volver a cargar los datos base
+    await _insertarDatosIniciales(db);
+  }
+
+  //Funcion para restaurar los datos iniciales desde el json
+  Future<void> restaurarDatosIniciales() async {
+    final db = await database;
+
+    // 1️⃣ Cargar categorías base
+    final categoriasJson = await cargarCategoriasDesdeJson();
+
+    for (final cat in categoriasJson) {
+      await db.insert(
+        'categorias',
+        {
+          'nombre': cat['nombre'],
+          'descripcion': cat['descripcion'],
+          'imagen': cat['imagen'],
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+
+    // 2️⃣ Mapa nombre → id actualizado
+    final categoriasDb = await db.query('categorias');
+    final Map<String, int> categoriaMap = {
+      for (final c in categoriasDb)
+        c['nombre'] as String: c['id'] as int,
+    };
+
+    // 3️⃣ Cargar palabras base
+    final palabrasJson = await cargarPalabrasDesdeJson();
+
+    for (final item in palabrasJson) {
+      final palabraTexto = item['palabra'] as String;
+      final nombreCategoria = item['categoria'] as String;
+      final pistas = List<String>.from(item['pistas']);
+
+      final categoriaId = categoriaMap[nombreCategoria];
+      if (categoriaId == null) continue;
+
+      // Insertar palabra sin duplicar
+      await db.insert(
+        'palabras',
+        {
+          'texto': palabraTexto,
+          'categoria_id': categoriaId,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+
+      // 🔥 OBTENER SIEMPRE EL ID REAL 🔥
+      final palabraDb = await db.query(
+        'palabras',
+        where: 'texto = ? AND categoria_id = ?',
+        whereArgs: [palabraTexto, categoriaId],
+        limit: 1,
+      );
+
+      if (palabraDb.isEmpty) continue;
+
+      final palabraId = palabraDb.first['id'] as int;
+
+      // 🔥 INSERTAR PISTAS FALTANTES 🔥
+      for (final pistaTexto in pistas) {
+        await db.insert(
+          'pistas',
+          {
+            'palabra_id': palabraId,
+            'texto': pistaTexto,
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    }
+  }
+
+
 
   //Inserta las categorias y llama a insertar palabras
   Future<void> _insertarDatosIniciales(Database db) async {
@@ -211,6 +298,49 @@ class DatabaseHelper {
     return result.isNotEmpty;
   }
 
+  //Funcion para actualizar una categoria
+  Future<void> updateCategoria(Categoria categoria) async {
+    final db = await database;
+
+    await db.update(
+      'categorias',
+      categoria.toMap(),
+      where: 'id = ?',
+      whereArgs: [categoria.id],
+    );
+  }
+
+  //Funcion para eliminar una categoria
+  Future<void> deleteCategoria(int id) async {
+    final db = await database;
+
+    await db.delete(
+      'categorias',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  //Funcion para traer las categorias y la cantidad de palabras de esa categoria
+  Future<List<Map<String, dynamic>>> getCategoriasConCantidadPalabras() async {
+    final db = await database;
+
+    final result = await db.rawQuery('''
+      SELECT 
+        c.id,
+        c.nombre,
+        c.descripcion,
+        c.imagen,
+        COUNT(p.id) AS cantidad_palabras
+      FROM categorias c
+      LEFT JOIN palabras p ON p.categoria_id = c.id
+      GROUP BY c.id
+      ORDER BY c.nombre
+    ''');
+
+    return result;
+  }
+
 
   //Funcion para insertar una palabra
   Future<int?> insertPalabraSinDuplicar(Palabra palabra) async {
@@ -244,6 +374,23 @@ class DatabaseHelper {
     });
   }
 
+  //Funcion para obtener el id de la palabra
+  Future<int> _obtenerPalabraId({
+    required Database db,
+    required String texto,
+    required int categoriaId,
+  }) async {
+    final result = await db.query(
+      'palabras',
+      where: 'texto = ? AND categoria_id = ?',
+      whereArgs: [texto, categoriaId],
+      limit: 1,
+    );
+
+    return result.first['id'] as int;
+  }
+
+
 
   //Verificar que existe esa palabra en la base
   Future<bool> palabraExiste(String texto, int categoriaId) async {
@@ -275,6 +422,18 @@ class DatabaseHelper {
     final db = await database;
     await db.insert('pistas', pista.toMap());
   }
+
+  //Funcion para insertar una pista sin duplicar
+  Future<void> insertPistaSinDuplicar(Pista pista) async {
+    final db = await database;
+
+    await db.insert(
+      'pistas',
+      pista.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
 
   //Funcion para obtener todas las pistar por palabra
   Future<List<Pista>> getPistasPorPalabra(int palabraId) async {
@@ -312,6 +471,75 @@ class DatabaseHelper {
 
     return palabraId;
   }
+
+  //Insertar las palabras con las pistas
+  Future<void> insertarPalabraBaseConPistas({
+    required Database db,
+    required String palabra,
+    required int categoriaId,
+    required List<String> pistas,
+  }) async {
+    // 1️⃣ Intentar insertar la palabra
+    await db.insert(
+      'palabras',
+      {
+        'texto': palabra,
+        'categoria_id': categoriaId,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+
+    // 2️⃣ Obtener SIEMPRE el id real
+    final palabraId = await _obtenerPalabraId(
+      db: db,
+      texto: palabra,
+      categoriaId: categoriaId,
+    );
+
+    // 3️⃣ Insertar pistas faltantes
+    for (final pistaTexto in pistas) {
+      await insertPistaSinDuplicar(
+        Pista(
+          palabraId: palabraId,
+          texto: pistaTexto,
+        ),
+      );
+    }
+  }
+
+
+  //Verifica si existe al menos una palabra en TODAS las categorías
+  Future<bool> existeAlgunaPalabra() async {
+    final db = await database;
+
+    final result = await db.rawQuery(
+      'SELECT 1 FROM palabras LIMIT 1',
+    );
+
+    return result.isNotEmpty;
+  }
+
+  //Verifica si existe al menos una palabra en un conjunto de categorías
+  Future<bool> existePalabraEnCategorias(List<int> categoriaIds) async {
+    if (categoriaIds.isEmpty) return false;
+
+    final db = await database;
+
+    final placeholders = List.filled(categoriaIds.length, '?').join(',');
+
+    final result = await db.rawQuery(
+      '''
+      SELECT 1 
+      FROM palabras 
+      WHERE categoria_id IN ($placeholders)
+      LIMIT 1
+      ''',
+      categoriaIds,
+    );
+
+    return result.isNotEmpty;
+  }
+
 
 
 

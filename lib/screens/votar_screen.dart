@@ -19,6 +19,17 @@ class _VotarScreenState extends State<VotarScreen> {
   Jugador? jugadorSeleccionado;
   bool votoEnviado = false;
   bool finJuego = false;
+  bool eraImpostor = false;
+
+  //Variables para modo todos juntos
+  final List<Jugador> jugadoresSeleccionados = [];
+  int get maxVotos => game.cantidadImpostores;
+  bool get esVotoIndividual =>
+      game.cantidadImpostores == 1 || game.votoImpostoresIndividual;
+  bool get seleccionMultiple =>
+      game.cantidadImpostores > 1 && !esVotoIndividual;
+
+
 
   String mensajeResultado = '';
   Color fondoResultado = Colors.black;
@@ -30,33 +41,61 @@ class _VotarScreenState extends State<VotarScreen> {
   }
 
   void enviarVoto() {
-    if (jugadorSeleccionado == null) return;
+    if (!esVotoIndividual) {
+      // 🔹 MODO TODOS JUNTOS
+      final impostores = game.jugadores.where((j) => j.esImpostor).toList();
 
-    final eraImpostor = jugadorSeleccionado!.esImpostor;
+      final impostoresVotados = jugadoresSeleccionados
+          .where((j) => j.esImpostor)
+          .length;
 
-    game.eliminarJugador(jugadorSeleccionado!);
+      final gananNormales = impostoresVotados == impostores.length;
+      final gananImpostores = !gananNormales;
 
-    // Revisar si terminó el juego
-    if (game.ganoLaGenteNormal || game.ganaronLosImpostores) {
-      // Ir directo a pantalla final
-      finJuego = true;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => FinalScreen(
-            ganoImpostores: game.ganaronLosImpostores,
+            ganoImpostores: gananImpostores,
           ),
         ),
       );
     } else {
-      // Solo mostrar mensaje si el juego no terminó
-      setState(() {
-        votoEnviado = true;
-        mensajeResultado = eraImpostor
-            ? '✅ ${jugadorSeleccionado!.nombre} ERA impostor'
-            : '❌ ${jugadorSeleccionado!.nombre} no era impostor';
-      });
+      // 🔹 MODO INDIVIDUAL (igual que antes)
+      if (jugadorSeleccionado == null) return;
+
+      eraImpostor = jugadorSeleccionado!.esImpostor;
+      game.eliminarJugador(jugadorSeleccionado!);
+
+      if (game.ganoLaGenteNormal || game.ganaronLosImpostores) {
+        finJuego = true;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FinalScreen(
+              ganoImpostores: game.ganaronLosImpostores,
+            ),
+          ),
+        );
+      } else {
+        setState(() {
+          votoEnviado = true;
+          mensajeResultado = eraImpostor
+              ? '${jugadorSeleccionado!.nombre} ERA impostor'
+              : '${jugadorSeleccionado!.nombre} no era impostor';
+        });
+      }
     }
+  }
+
+  void reiniciarVotacion() {
+    setState(() {
+      votoEnviado = false;
+      jugadorSeleccionado = null;
+      mensajeResultado = '';
+      jugadoresSeleccionados.clear();
+      // NO tocar finJuego
+    });
   }
 
   @override
@@ -108,27 +147,42 @@ class _VotarScreenState extends State<VotarScreen> {
                 ),
                 itemBuilder: (context, index) {
                   final jugador = game.jugadores[index];
-                  final seleccionado = jugador == jugadorSeleccionado;
-
+                  final bool seleccionado = seleccionMultiple
+                      ? jugadoresSeleccionados.contains(jugador)
+                      : jugador == jugadorSeleccionado;
+                      
                   return GestureDetector(
                     onTap: jugador.eliminado || votoEnviado
                         ? null
                         : () {
                             setState(() {
-                              jugadorSeleccionado = jugador;
+                              if (seleccionMultiple) {
+                                // 🔹 MULTIPLE (todos juntos)
+                                if (jugadoresSeleccionados.contains(jugador)) {
+                                  jugadoresSeleccionados.remove(jugador);
+                                } else {
+                                  if (jugadoresSeleccionados.length < game.cantidadImpostores) {
+                                    jugadoresSeleccionados.add(jugador);
+                                  }
+                                }
+                              } else {
+                                // 🔹 INDIVIDUAL (siempre reemplaza)
+                                jugadorSeleccionado = jugador;
+                                jugadoresSeleccionados.clear(); // por seguridad
+                              }
                             });
                           },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         color: seleccionado
-                          ? Color.alphaBlend(
-                              Colors.black.withValues(alpha: 0.25),
-                              (jugador.color ?? Colors.grey),
-                            )
-                          : (jugador.color ?? Colors.grey).withValues(
-                              alpha: jugador.eliminado ? 0.35 : 1,
-                            ),
+                            ? Color.alphaBlend(
+                                Colors.black.withValues(alpha: 0.25),
+                                (jugador.color ?? Colors.grey),
+                              )
+                            : (jugador.color ?? Colors.grey).withValues(
+                                alpha: jugador.eliminado ? 0.35 : 1,
+                              ),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: seleccionado
@@ -150,7 +204,9 @@ class _VotarScreenState extends State<VotarScreen> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: seleccionado ? Colors.white : Colors.black,
+                                color: seleccionado
+                                    ? Colors.white
+                                    : Colors.black,
                               ),
                             ),
                           ),
@@ -175,7 +231,7 @@ class _VotarScreenState extends State<VotarScreen> {
             ),
 
             /// BOTÓN ENVIAR VOTO
-            if (!votoEnviado && jugadorSeleccionado != null)
+            if (!votoEnviado && ((!seleccionMultiple && jugadorSeleccionado != null) || (seleccionMultiple &&jugadoresSeleccionados.length == game.cantidadImpostores)))
               SafeArea(
                 top: false,
                 child: SizedBox(
@@ -190,9 +246,9 @@ class _VotarScreenState extends State<VotarScreen> {
                         borderRadius: BorderRadius.circular(32),
                       ),
                     ),
-                    child: const Text(
-                      'ENVIAR VOTOS',
-                      style: TextStyle(
+                    child: Text(
+                      esVotoIndividual ? 'ENVIAR VOTO' : 'ENVIAR VOTOS',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -204,26 +260,50 @@ class _VotarScreenState extends State<VotarScreen> {
             /// RESULTADO
             if (votoEnviado) ...[
               const SizedBox(height: 24),
-              Center(
-                child: Text(
-                  mensajeResultado,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    eraImpostor
+                        ? Icons.check_rounded   // ✔ impostor
+                        : Icons.close_rounded,  // ❌ no impostor
+                    color: eraImpostor
+                        ? Colors.greenAccent
+                        : Colors.redAccent,
+                    size: 32,
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      mensajeResultado,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 24),
 
+              // Boton Continuar juego
               if (!finJuego)
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context, true);
+                      if (game.tiempoTerminado) {
+                        // ⏱️ El tiempo ya terminó → votar de nuevo
+                        reiniciarVotacion();
+                      } else {
+                        // ⏳ Todavía hay tiempo → volver al contador
+                        Navigator.pop(context, true);
+                      }
                     },
                     style: kWhiteButtonStyle,
                     child: const Text(
@@ -231,13 +311,11 @@ class _VotarScreenState extends State<VotarScreen> {
                       style: kWhiteButtonText,
                     ),
                   ),
-                )
+                ),
             ],
           ],
         ),
       ),
     );
   }
-  
 }
-

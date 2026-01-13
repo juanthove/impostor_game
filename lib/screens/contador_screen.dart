@@ -12,12 +12,10 @@ class ContadorScreen extends StatefulWidget {
   State<ContadorScreen> createState() => _ContadorScreenState();
 }
 
-class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObserver{
-  late int _segundosRestantes;
-  late int _tiempoTotal;
+class _ContadorScreenState extends State<ContadorScreen>
+    with WidgetsBindingObserver {
 
   Timer? _timer;
-  bool _pausado = false;
   bool _enVotacion = false;
 
   final game = GameState.instance;
@@ -27,9 +25,6 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemUIHelper.hideSystemBars();
-
-    _tiempoTotal = game.tiempoLimite * 60;
-    _segundosRestantes = _tiempoTotal;
 
     _iniciarTimer();
   }
@@ -41,43 +36,49 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
     }
   }
 
-
-  void _iniciarTimer() {
+ void _iniciarTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_pausado) {
-        setState(() {
-          if (_segundosRestantes > 0) {
-            _segundosRestantes--;
-          } else {
-            _timer?.cancel();
-            _irAVotar();
-          }
-        });
-      }
+      if (game.tiempoPausado) return;
+
+      setState(() {
+        if (game.tiempoRestante > 0) {
+          game.tiempoRestante--;
+        } else {
+          // ⏱️ Tiempo terminado → ir directo a votar
+          game.tiempoTerminado = true;
+          _timer?.cancel();
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const VotarScreen(),
+            ),
+          );
+        }
+      });
     });
   }
 
   void _pausar() {
     setState(() {
-      _pausado = true;
+      game.pausarTiempo();
     });
   }
 
   void _reanudar() {
     setState(() {
-      _pausado = false;
+      game.reanudarTiempo();
     });
     _iniciarTimer();
   }
-
 
   Future<void> _irAVotar() async {
     if (_enVotacion) return;
 
     setState(() {
       _enVotacion = true;
-      _pausado = true;
+      game.pausarTiempo();
     });
 
     _timer?.cancel();
@@ -93,17 +94,18 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
 
     _enVotacion = false;
 
-    if (votoRealizado == true && _segundosRestantes > 0) {
+    // ⏱️ Solo volver a correr el tiempo si aún queda
+    if (votoRealizado == true && !game.tiempoTerminado) {
       setState(() {
-        _pausado = false;
+        game.reanudarTiempo();
         _iniciarTimer();
       });
     }
   }
 
   String _formatearTiempo() {
-    final minutos = (_segundosRestantes ~/ 60).toString().padLeft(2, '0');
-    final segundos = (_segundosRestantes % 60).toString().padLeft(2, '0');
+    final minutos = (game.tiempoRestante ~/ 60).toString().padLeft(2, '0');
+    final segundos = (game.tiempoRestante % 60).toString().padLeft(2, '0');
     return '$minutos:$segundos';
   }
 
@@ -134,7 +136,7 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
             left: 0,
             right: 0,
             height: MediaQuery.of(context).size.height *
-                (1 - _segundosRestantes / (game.tiempoLimite * 60)),
+                (1 - game.tiempoRestante / (game.tiempoLimite * 60)),
             child: Container(color: Colors.red.shade700),
           ),
 
@@ -162,7 +164,7 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (!_pausado)
+                  if (!game.tiempoPausado)
                     SizedBox(
                       height: 64,
                       width: 300, // ancho fijo para que sea similar a Reanudar/Votar
@@ -172,7 +174,7 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
                         child: const Text('Pausar', style: kWhiteButtonText),
                       ),
                     ),
-                  if (_pausado) ...[
+                  if (game.tiempoPausado) ...[
                     SizedBox(
                       height: 64,
                       width: 140, //Mismo ancho que Votar
@@ -201,5 +203,4 @@ class _ContadorScreenState extends State<ContadorScreen> with WidgetsBindingObse
       ),
     );
   }
-
 }

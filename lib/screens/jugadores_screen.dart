@@ -63,6 +63,8 @@ class _JugadoresScreenState extends State<JugadoresScreen> {
 
     game.jugadores =
         nombres.map((n) => Jugador(nombre: n, esImpostor: false)).toList();
+    game.jugadoresBase =
+        nombres.map((n) => Jugador(nombre: n, esImpostor: false)).toList();
 
     Navigator.push(
       context,
@@ -84,6 +86,7 @@ class _JugadoresScreenState extends State<JugadoresScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -163,21 +166,24 @@ class _JugadoresScreenState extends State<JugadoresScreen> {
                   },
                 ),
               ),
-
-              /// BOTÓN CONTINUAR
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: botonHabilitado ? _irAJugar : null,
-                  style: kWhiteButtonStyle,
-                  child: Text(
-                    'CONTINUAR | $jugadoresConNombre Jugadores',
-                    style: kWhiteButtonText,
-                  ),
-                ),
-              ),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 60,
+            child: ElevatedButton(
+              onPressed: botonHabilitado ? _irAJugar : null,
+              style: kWhiteButtonStyle,
+              child: Text(
+                'CONTINUAR | $jugadoresConNombre Jugadores',
+                style: kWhiteButtonText,
+              ),
+            ),
           ),
         ),
       ),

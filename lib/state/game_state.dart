@@ -8,13 +8,20 @@ class GameState {
   // ===== CONFIGURACIÓN DE LA PARTIDA =====
   bool usarTodas = true;
   List<int> categoriasSeleccionadas = [];
-  int tiempoLimite = 0;
+  int tiempoLimite = 0; // en minutos
   int cantidadImpostores = 1;
   bool usarPistas = false;
+  bool votoImpostoresIndividual = true;
 
   // ===== ESTADO DEL JUEGO =====
+  List<Jugador> jugadoresBase = [];
   List<Jugador> jugadores = [];
   String palabraReal = '';
+
+  // ===== ESTADO DEL TIEMPO =====
+  int tiempoRestante = 0; // en segundos
+  bool tiempoPausado = false;
+  bool tiempoTerminado = false;
 
   // ===== INICIALIZAR JUEGO =====
   void inicializarJuego({
@@ -29,6 +36,11 @@ class GameState {
     this.usarPistas = usarPistas;
     this.tiempoLimite = tiempoLimite;
     this.categoriasSeleccionadas = categoriasSeleccionadas;
+
+    // Inicializar tiempo
+    tiempoRestante = tiempoLimite * 60;
+    tiempoPausado = false;
+    tiempoTerminado = false;
   }
 
   // ===== HELPERS =====
@@ -51,6 +63,28 @@ class GameState {
     jugador.eliminado = true;
   }
 
+  // ===== MANEJO DEL TIEMPO =====
+  void pausarTiempo() {
+    tiempoPausado = true;
+  }
+
+  void reanudarTiempo() {
+    tiempoPausado = false;
+  }
+
+  void descontarSegundo() {
+    if (tiempoPausado || tiempoTerminado) return;
+
+    if (tiempoRestante > 0) {
+      tiempoRestante--;
+    }
+
+    if (tiempoRestante <= 0) {
+      tiempoRestante = 0;
+      tiempoTerminado = true;
+    }
+  }
+
   // ===== REINICIAR RONDA (MISMA CONFIG) =====
   void resetParaNuevaRonda() {
     palabraReal = '';
@@ -59,6 +93,11 @@ class GameState {
       j.eliminado = false;
       j.esImpostor = false;
     }
+
+    // Reiniciar tiempo
+    tiempoRestante = tiempoLimite * 60;
+    tiempoPausado = false;
+    tiempoTerminado = false;
   }
 
   // ===== RESET TOTAL (VOLVER AL INICIO) =====
@@ -70,5 +109,15 @@ class GameState {
     cantidadImpostores = 1;
     usarTodas = true;
     usarPistas = false;
+
+    // Reset tiempo
+    tiempoRestante = 0;
+    tiempoPausado = false;
+    tiempoTerminado = false;
   }
+
+  void crearJugadoresParaRonda() {
+    jugadores = jugadoresBase.map((j) => j.clone()).toList();
+  }
+
 }
