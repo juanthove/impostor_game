@@ -4,6 +4,7 @@ import 'votar_screen.dart';
 import '../state/game_state.dart';
 import '../utils/system_ui_helper.dart'; // Ocultar barras del sistema
 import '../constants/ui_constants.dart'; //Constantes de diseño
+import 'package:wakelock_plus/wakelock_plus.dart'; //Para evitar que la pantalla se apague
 
 class ContadorScreen extends StatefulWidget {
   const ContadorScreen({super.key});
@@ -25,6 +26,8 @@ class _ContadorScreenState extends State<ContadorScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemUIHelper.hideSystemBars();
+
+    WakelockPlus.enable(); //Que la pantalla no se apague
 
     _iniciarTimer();
   }
@@ -113,6 +116,7 @@ class _ContadorScreenState extends State<ContadorScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    WakelockPlus.disable(); //Que la pantalla se vuelva a apagar
     super.dispose();
   }
 

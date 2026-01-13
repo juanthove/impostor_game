@@ -345,8 +345,8 @@ class DatabaseHelper {
   //Funcion para insertar una palabra
   Future<int?> insertPalabraSinDuplicar(Palabra palabra) async {
     final existe = await palabraExiste(
-      palabra.texto,
-      palabra.categoriaId,
+      texto: palabra.texto,
+      categoriaId: palabra.categoriaId,
     );
 
     if (existe) {
@@ -393,18 +393,87 @@ class DatabaseHelper {
 
 
   //Verificar que existe esa palabra en la base
-  Future<bool> palabraExiste(String texto, int categoriaId) async {
+  Future<bool> palabraExiste({
+    required String texto,
+    required int categoriaId,
+    int? excluirPalabraId,
+  }) async {
     final db = await database;
+
+    final where = StringBuffer('texto = ? AND categoria_id = ?');
+    final args = <dynamic>[texto, categoriaId];
+
+    if (excluirPalabraId != null) {
+      where.write(' AND id != ?');
+      args.add(excluirPalabraId);
+    }
 
     final result = await db.query(
       'palabras',
-      where: 'texto = ? AND categoria_id = ?',
-      whereArgs: [texto, categoriaId],
+      where: where.toString(),
+      whereArgs: args,
       limit: 1,
     );
 
     return result.isNotEmpty;
   }
+
+  Future<bool> existeOtraPalabra({
+    required String texto,
+    required int palabraId,
+  }) async {
+    final db = await database;
+
+    final result = await db.query(
+      'palabras',
+      where: 'texto = ? AND id != ?',
+      whereArgs: [texto, palabraId],
+      limit: 1,
+    );
+
+    return result.isNotEmpty;
+  }
+
+  Future<void> updatePalabraConPistas({
+    required int palabraId,
+    required String texto,
+    required int categoriaId,
+    required List<String> pistas,
+  }) async {
+    final db = await database;
+
+    // 1️⃣ Actualizar palabra
+    await db.update(
+      'palabras',
+      {
+        'texto': texto,
+        'categoria_id': categoriaId,
+      },
+      where: 'id = ?',
+      whereArgs: [palabraId],
+    );
+
+    // 2️⃣ Borrar pistas anteriores
+    await db.delete(
+      'pistas',
+      where: 'palabra_id = ?',
+      whereArgs: [palabraId],
+    );
+
+    // 3️⃣ Insertar nuevas pistas
+    for (final pista in pistas.where((p) => p.isNotEmpty)) {
+      await db.insert(
+        'pistas',
+        {
+          'texto': pista,
+          'palabra_id': palabraId,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+  }
+
+
 
   //Eliminar una palabra
   Future<void> deletePalabra(int id) async {

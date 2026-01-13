@@ -5,6 +5,7 @@ import '../models/categoria.dart';
 import '../utils/system_ui_helper.dart'; //Ocultar barra de navegación
 import '../constants/ui_constants.dart'; //Para obtener el estilo del juego
 import '../models/pista.dart';
+import 'edit_palabra_sheet.dart';
 
 class ListPalabrasScreen extends StatefulWidget {
   const ListPalabrasScreen({super.key});
@@ -181,55 +182,85 @@ class _ListPalabrasScreenState extends State<ListPalabrasScreen> {
                                       ),
                                     ),
 
-                                    // ===== Botón borrar =====
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.close, color: Colors.red),
-                                      onPressed: () async {
-                                        final confirmar = await showDialog<bool>(
-                                          context: context,
-                                          builder: (_) => AlertDialog(
-                                            backgroundColor: kGrayField,
-                                            title: const Text(
-                                              'Eliminar palabra',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w700,
-                                                fontFamily: 'Poppins',
-                                              ),
-                                            ),
-                                            content: Text(
-                                              '¿Eliminar "${palabra.texto}"?',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontFamily: 'Poppins',
-                                              ),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context, false),
-                                                child: const Text(
-                                                  'Cancelar',
-                                                  style: TextStyle(color: Colors.white),
-                                                ),
-                                              ),
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context, true),
-                                                child: const Text(
-                                                  'Eliminar',
-                                                  style: TextStyle(color: Colors.red),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
+                                    // ===== Botones editar / borrar =====
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // ✏️ Editar palabra
+                                        IconButton(
+                                          icon: const Icon(Icons.edit, color: Colors.white),
+                                          onPressed: () async {
+                                            await showModalBottomSheet(
+                                              context: context,
+                                              isScrollControlled: true, // 🔥 obligatorio
+                                              backgroundColor: Colors.transparent,
+                                              builder: (context) {
+                                                return Padding(
+                                                  padding: EdgeInsets.only(
+                                                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                                                  ),
+                                                  child: EditPalabraSheet(
+                                                    palabra: palabra,
+                                                  ),
+                                                );
+                                              },
+                                            );
 
-                                        if (confirmar == true) {
-                                          await db.deletePalabra(palabra.id!);
-                                          _filtrarPalabras();
-                                        }
-                                      },
+                                            _filtrarPalabras(); // refresca al cerrar el modal
+                                          },
+                                        ),
+
+                                        // ❌ Borrar palabra
+                                        IconButton(
+                                          icon: const Icon(Icons.close, color: Colors.red),
+                                          onPressed: () async {
+                                            final confirmar = await showDialog<bool>(
+                                              context: context,
+                                              builder: (_) => AlertDialog(
+                                                backgroundColor: kGrayField,
+                                                title: const Text(
+                                                  'Eliminar palabra',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontFamily: 'Poppins',
+                                                  ),
+                                                ),
+                                                content: Text(
+                                                  '¿Eliminar "${palabra.texto}"?',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontFamily: 'Poppins',
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context, false),
+                                                    child: const Text(
+                                                      'Cancelar',
+                                                      style: TextStyle(color: Colors.white),
+                                                    ),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context, true),
+                                                    child: const Text(
+                                                      'Eliminar',
+                                                      style: TextStyle(color: Colors.red),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+
+                                            if (confirmar == true) {
+                                              await db.deletePalabra(palabra.id!);
+                                              _filtrarPalabras();
+                                            }
+                                          },
+                                        ),
+                                      ],
                                     ),
 
                                     // ===== Pistas =====

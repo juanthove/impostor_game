@@ -10,6 +10,8 @@ import '../widgets/opcion_button.dart';
 import '../widgets/primary_black_action_button.dart';
 import '../db/database_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'legal_web_screen.dart';
+
 
 enum OpcionesView {
   main,
@@ -19,6 +21,10 @@ enum OpcionesView {
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  //URL legal
+  static const String urlPrivacy = 'https://juanthove.github.io/impostor-game-legal/';
+  static const String urlTerms = 'https://juanthove.github.io/impostor-game-legal/#terms';
 
   
   void _abrirOpciones(BuildContext context) {
@@ -91,6 +97,7 @@ class HomeScreen extends StatelessWidget {
                         },
                         child: view == OpcionesView.main
                             ? _vistaOpcionesMain(
+                              context: context,
                                 key: const ValueKey('main'),
                                 onResetTap: () {
                                   setState(() {
@@ -135,6 +142,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _vistaOpcionesMain({
+    required BuildContext context, // ⚡ agregar context
     required Key key,
     required VoidCallback onResetTap,
   }) {
@@ -150,12 +158,30 @@ class HomeScreen extends StatelessWidget {
           OpcionButton(
             texto: 'Política de privacidad',
             icono: Icons.shield_outlined,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LegalWebViewScreen(
+                    url: urlPrivacy,
+                  ),
+                ),
+              );
+            },
           ),
           OpcionButton(
             texto: 'Términos de uso',
             icono: Icons.description_outlined,
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LegalWebViewScreen(
+                    url: urlTerms,
+                  ),
+                ),
+              );
+            },
           ),
           OpcionButton(
             texto: 'Reiniciar datos',
@@ -307,6 +333,8 @@ class HomeScreen extends StatelessWidget {
       debugPrint('No hay app de correo disponible');
     }
   }
+
+
 
 
 

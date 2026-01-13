@@ -5,6 +5,7 @@ import '../state/game_state.dart';
 import 'final_screen.dart';
 import '../utils/system_ui_helper.dart'; //Ocultar barra de navegación
 import '../constants/ui_constants.dart'; //Constantes de diseño
+import 'package:wakelock_plus/wakelock_plus.dart'; //Para evitar que la pantalla se apague
 
 class VotarScreen extends StatefulWidget {
   const VotarScreen({super.key});
@@ -38,6 +39,14 @@ class _VotarScreenState extends State<VotarScreen> {
   void initState() {
     super.initState();
     SystemUIHelper.hideSystemBars();
+
+    WakelockPlus.enable(); //Que la pantalla no se apague
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable(); //Que la pantalla se vuelva a apagar
+    super.dispose();
   }
 
   void enviarVoto() {

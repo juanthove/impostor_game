@@ -33,6 +33,8 @@ class _JuegoScreenState extends State<JuegoScreen> with SingleTickerProviderStat
   static const double _infoHeight = 180;
   late double _maxOffset;
 
+  static const double _revealThreshold = 0.9; // 90% del recorrido
+
   final List<Color> coloresDisponibles = [
     const Color.fromARGB(255, 81, 171, 40),
     const Color.fromARGB(255, 238, 149, 28),
@@ -41,7 +43,7 @@ class _JuegoScreenState extends State<JuegoScreen> with SingleTickerProviderStat
     const Color.fromARGB(255, 156, 97, 190),
     const Color.fromARGB(255, 46, 155, 163),
     const Color.fromARGB(255, 200, 185, 70),
-    const Color.fromARGB(255, 170, 110, 90), 
+    const Color.fromARGB(255, 204, 142, 122), 
   ];
 
   // Animación
@@ -145,10 +147,8 @@ class _JuegoScreenState extends State<JuegoScreen> with SingleTickerProviderStat
   }
 
   void _revelarPalabra() {
-    _animController.stop(); // Detenemos animación cuando se revela
     setState(() {
       palabraRevelada = true;
-      esperaConfirmacion = true;
     });
   }
 
@@ -177,17 +177,24 @@ Widget build(BuildContext context) {
           _dragOffset -= details.delta.dy;
           _dragOffset = _dragOffset.clamp(0, _maxOffset);
         });
+
+        // 👇 Revelar apenas llega al umbral (una sola vez)
+        if (!palabraRevelada &&
+            _dragOffset >= _maxOffset * _revealThreshold) {
+          _revelarPalabra();
+        }
       },
       onVerticalDragEnd: (_) {
-        if (_dragOffset >= _maxOffset / 2) {
-          setState(() => _dragOffset = 0);
+        // Animamos siempre hacia abajo
+        setState(() => _dragOffset = 0);
 
-          Future.delayed(const Duration(milliseconds: 650), () {
-            if (!mounted) return;
-            _revelarPalabra();
+        // 👇 SOLO habilitamos el botón si:
+        // - la palabra ya fue revelada
+        if (palabraRevelada) {
+          _animController.stop(); // Detenemos animación cuando se revela
+          setState(() {
+            esperaConfirmacion = true;
           });
-        } else {
-          setState(() => _dragOffset = 0);
         }
       },
       child: Stack(
@@ -220,7 +227,7 @@ Widget build(BuildContext context) {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // 🔹 Texto inicial + flecha animados
-                if (!palabraRevelada)
+                if (!esperaConfirmacion)
                   SlideTransition(
                     position: _animOffset,
                     child: Transform.translate(
@@ -246,7 +253,7 @@ Widget build(BuildContext context) {
 
 
                 // 🔹 Texto de pasar el teléfono + botón cuando se reveló
-                if (palabraRevelada)
+                if (esperaConfirmacion)
                   TweenAnimationBuilder<Offset>(
                     tween: Tween(begin: const Offset(0, 0.05), end: Offset.zero),
                     duration: const Duration(milliseconds: 400),
