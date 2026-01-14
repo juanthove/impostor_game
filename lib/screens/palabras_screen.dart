@@ -72,7 +72,9 @@ class _AddPalabraScreenState extends State<AddPalabraScreen> {
     } else {
       _mostrarMensaje('Palabra guardada');
       _palabraController.clear();
-      for (final c in _pistasControllers) c.clear();
+      for (final c in _pistasControllers) {
+        c.clear();
+      }
     }
   }
 
@@ -88,8 +90,12 @@ class _AddPalabraScreenState extends State<AddPalabraScreen> {
   @override
   void dispose() {
     _palabraController.dispose();
-    for (final c in _pistasControllers) c.dispose();
-    for (final f in _pistasFocusNodes) f.dispose();
+    for (final c in _pistasControllers) {
+      c.dispose();
+    }
+    for (final f in _pistasFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 

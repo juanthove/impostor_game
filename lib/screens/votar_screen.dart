@@ -6,6 +6,7 @@ import 'final_screen.dart';
 import '../utils/system_ui_helper.dart'; //Ocultar barra de navegación
 import '../constants/ui_constants.dart'; //Constantes de diseño
 import 'package:wakelock_plus/wakelock_plus.dart'; //Para evitar que la pantalla se apague
+import 'package:flutter_svg/flutter_svg.dart';
 
 class VotarScreen extends StatefulWidget {
   const VotarScreen({super.key});
@@ -159,7 +160,19 @@ class _VotarScreenState extends State<VotarScreen> {
                   final bool seleccionado = seleccionMultiple
                       ? jugadoresSeleccionados.contains(jugador)
                       : jugador == jugadorSeleccionado;
-                      
+
+                  final Color poseColor = seleccionado
+                      ? Color.lerp(
+                          jugador.color ?? Colors.grey,
+                          Colors.white,
+                          0.25,
+                        )!
+                      : Color.lerp(
+                          jugador.color ?? Colors.grey,
+                          Colors.black,
+                          0.25,
+                        )!;
+
                   return GestureDetector(
                     onTap: jugador.eliminado || votoEnviado
                         ? null
@@ -202,6 +215,24 @@ class _VotarScreenState extends State<VotarScreen> {
                       ),
                       child: Stack(
                         children: [
+                          // POSE DEL JUGADOR (SVG)
+                          if (jugador.poseAsset != null)
+                            Positioned.fill(
+                              child: Center(
+                                child: Transform.translate(
+                                  offset: const Offset(0, -12), // 👈 sube la pose
+                                  child: SvgPicture.asset(
+                                    jugador.poseAsset!,
+                                    height: 90, // ajustá según gusto
+                                    fit: BoxFit.contain,
+                                    colorFilter: ColorFilter.mode(
+                                      poseColor,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           // Nombre abajo centrado
                           Positioned(
                             bottom: 16,

@@ -247,7 +247,7 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
         width: 100,
         height: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholderImagen(),
+        errorBuilder: (_, _, _) => _placeholderImagen(),
       );
     }
 
@@ -259,7 +259,7 @@ class _CategoriasJuegoScreenState extends State<CategoriasJuegoScreen> {
         width: 100,
         height: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholderImagen(),
+        errorBuilder: (_, _, _) => _placeholderImagen(),
       );
     }
 

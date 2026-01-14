@@ -46,19 +46,6 @@ class _JuegoScreenState extends State<JuegoScreen> with SingleTickerProviderStat
     const Color.fromARGB(255, 204, 142, 122), 
   ];
 
-  final List<String> posesDisponibles = [
-    'assets/icons/poses/pose_1.svg',
-    'assets/icons/poses/pose_2.svg',
-    'assets/icons/poses/pose_3.svg',
-    'assets/icons/poses/pose_4.svg',
-    'assets/icons/poses/pose_5.svg',
-    'assets/icons/poses/pose_6.svg',
-    'assets/icons/poses/pose_7.svg',
-    'assets/icons/poses/pose_8.svg',
-    'assets/icons/poses/pose_9.svg',
-    'assets/icons/poses/pose_10.svg',
-  ];
-
   // Animación
   late AnimationController _animController;
   late Animation<Offset> _animOffset;
@@ -130,7 +117,6 @@ class _JuegoScreenState extends State<JuegoScreen> with SingleTickerProviderStat
     }
 
     _asignarColores();
-    _asignarPoses();
     game.palabraReal = palabraReal.texto;
 
     setState(() => _cargando = false);
@@ -140,13 +126,6 @@ class _JuegoScreenState extends State<JuegoScreen> with SingleTickerProviderStat
     final colores = List<Color>.from(coloresDisponibles)..shuffle();
     for (int i = 0; i < game.jugadores.length; i++) {
       game.jugadores[i].color = colores[i % colores.length];
-    }
-  }
-
-  void _asignarPoses() {
-    final poses = List<String>.from(posesDisponibles)..shuffle();
-    for (int i = 0; i < game.jugadores.length; i++) {
-      game.jugadores[i].poseAsset = poses[i % poses.length];
     }
   }
 
@@ -190,12 +169,6 @@ Widget build(BuildContext context) {
   final jugador = game.jugadores[jugadorActual];
   final palabra = palabrasAsignadas[jugadorActual];
   final pista = pistasAsignadas[jugadorActual];
-
-  final Color poseColor = Color.lerp(
-    jugador.color,
-    Colors.black,
-    0.25, // 👈 CAMBIAR ESTE VALOR PARA OSCURECER MÁS O MENOS
-  )!;
 
   return Scaffold(
     body: GestureDetector(
@@ -242,28 +215,6 @@ Widget build(BuildContext context) {
               ),
             ),
           ),
-
-          // Pose del jugador (imagen central)
-          if (jugador.poseAsset != null)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Center(
-                  child: Opacity(
-                    opacity: 0.9,
-                    child: SvgPicture.asset(
-                      jugador.poseAsset!, // ✅ SVG
-                      height: screenHeight * 0.42,
-                      fit: BoxFit.contain,
-                      colorFilter: ColorFilter.mode(
-                        poseColor,
-                        BlendMode.srcIn,
-                      ),
-                      // 👆 ACÁ SE CAMBIA EL COLOR DE LA POSE
-                    ),
-                  ),
-                ),
-              ),
-            ),
 
           // Bloque que sube
           AnimatedPositioned(

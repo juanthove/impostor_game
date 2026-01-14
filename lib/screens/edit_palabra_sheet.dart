@@ -122,6 +122,8 @@ class _EditPalabraSheetState extends State<EditPalabraSheet> {
       pistas: pistas,
     );
 
+    if(!mounted) return;
+
     Navigator.pop(context);
   }
 
@@ -141,8 +143,12 @@ class _EditPalabraSheetState extends State<EditPalabraSheet> {
   @override
   void dispose() {
     _palabraController.dispose();
-    for (final c in _pistasControllers) c.dispose();
-    for (final f in _pistasFocusNodes) f.dispose();
+    for (final c in _pistasControllers) {
+      c.dispose();
+    }
+    for (final f in _pistasFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -198,7 +204,7 @@ class _EditPalabraSheetState extends State<EditPalabraSheet> {
                     // Dropdown Categoría
                     // =========================
                     DropdownButtonFormField<Categoria>(
-                      value: _categoriaSeleccionada,
+                      initialValue: _categoriaSeleccionada,
                       items: _categorias
                           .map(
                             (c) => DropdownMenuItem(

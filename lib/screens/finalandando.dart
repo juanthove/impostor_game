@@ -3,7 +3,6 @@ import '../state/game_state.dart';
 import '../models/jugador.dart';
 import 'home_screen.dart';
 import '../constants/ui_constants.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class FinalScreen extends StatelessWidget {
   final bool ganoImpostores;
@@ -216,11 +215,6 @@ class FinalScreen extends StatelessWidget {
 
 
   Widget _buildJugadorCard(Jugador jugador, double width) {
-    final Color poseColor = Color.lerp(
-      jugador.color ?? Colors.grey,
-      Colors.black,
-      0.25, // 👈 ajustá cuánto se oscurece
-    )!;
     return Container(
       width: width,
       height: 180,
@@ -238,24 +232,6 @@ class FinalScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          // POSE DEL JUGADOR (SVG)
-          if (jugador.poseAsset != null)
-            Positioned.fill(
-              child: Center(
-                child: Transform.translate(
-                  offset: const Offset(0, -12), // 👈 sube la pose
-                  child: SvgPicture.asset(
-                    jugador.poseAsset!,
-                    height: 90, // ajustá según gusto
-                    fit: BoxFit.contain,
-                    colorFilter: ColorFilter.mode(
-                      poseColor,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           Positioned(
             bottom: 16,
             left: 0,

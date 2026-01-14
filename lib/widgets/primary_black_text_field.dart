@@ -12,14 +12,14 @@ class PrimaryBlackTextField extends StatelessWidget {
   final EdgeInsets? contentPadding;
 
   const PrimaryBlackTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.hint,
     this.capitalization = TextCapitalization.words,
     this.focusNode,
     this.suffix,
     this.contentPadding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

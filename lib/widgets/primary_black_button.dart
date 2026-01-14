@@ -9,10 +9,10 @@ class PrimaryBlackButton extends StatelessWidget {
   final Widget screen;
 
   const PrimaryBlackButton({
-    Key? key,
+    super.key,
     required this.texto,
     required this.screen,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
